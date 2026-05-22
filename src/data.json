@@ -1,0 +1,92 @@
+{
+  "clients": [
+    {
+      "id": "c1",
+      "name": "Karim Benali",
+      "company": "TechMaroc SARL",
+      "address": "23 Rue Hassan II, Casablanca 20000",
+      "email": "karim@techmaroc.ma",
+      "phone": "+212 6 12 34 56 78",
+      "taxId": "RC: 123456 | IF: 98765432 | ICE: 001234567000012"
+    },
+    {
+      "id": "c2",
+      "name": "Fatima Zahra Idrissi",
+      "company": "Design Hub Maroc",
+      "address": "7 Avenue Mohammed V, Rabat 10000",
+      "email": "fz@designhub.ma",
+      "phone": "+212 5 37 89 01 23",
+      "taxId": "RC: 654321 | IF: 11223344 | ICE: 009876543000001"
+    },
+    {
+      "id": "c3",
+      "name": "Youssef Amrani",
+      "company": "Import Export Maghreb",
+      "address": "45 Boulevard Zerktouni, Marrakech 40000",
+      "email": "y.amrani@iemaroc.com",
+      "phone": "+212 5 24 56 78 90",
+      "taxId": "RC: 789012 | IF: 55667788 | ICE: 004561230000089"
+    }
+  ],
+  "products": [
+    {
+      "id": "p1",
+      "name": "Développement Web",
+      "description": "Conception et développement d'applications web sur mesure",
+      "descriptionHtml": "<p><strong>Périmètre de la prestation :</strong></p><ol><li>Analyse des besoins et rédaction du cahier des charges fonctionnel</li><li>Architecture technique (base de données, API REST, front-end)</li><li>Développement itératif avec livraisons hebdomadaires</li><li>Tests unitaires, intégration continue et recette client</li><li>Déploiement sur serveur cloud et mise en production</li></ol><p><em>Stack utilisée :</em> <strong>React</strong>, Node.js, PostgreSQL, Docker. Durée estimée : <strong>4 à 8 semaines</strong> selon complexité.</p>",
+      "unitPrice": 1500
+    },
+    {
+      "id": "p2",
+      "name": "Design UI/UX",
+      "description": "Création d'interfaces utilisateur et expérience utilisateur",
+      "descriptionHtml": "<p><strong>Livrables inclus :</strong></p><ol><li>Audit UX de l'existant et benchmark concurrentiel</li><li>Personas utilisateurs et parcours (user journey maps)</li><li>Wireframes basse fidélité validés avec le client</li><li>Maquettes haute fidélité sur Figma (desktop + mobile)</li><li>Prototype interactif cliquable pour tests utilisateurs</li><li>Design system : typographies, couleurs, composants réutilisables</li></ol><p>Révisions <strong>illimitées</strong> jusqu'à validation finale. Fichiers sources livrés en <em>format Figma et SVG</em>.</p>",
+      "unitPrice": 800
+    },
+    {
+      "id": "p3",
+      "name": "Consultation Stratégique",
+      "description": "Conseil en stratégie digitale et transformation numérique",
+      "descriptionHtml": "<p><strong>Déroulement de la mission :</strong></p><ol><li>Diagnostic 360° de la maturité digitale de l'entreprise</li><li>Cartographie des processus métiers et identification des gains</li><li>Définition de la feuille de route digitale sur 12 à 24 mois</li><li>Accompagnement au choix des solutions et des prestataires</li><li>Suivi mensuel des KPIs et ajustement de la stratégie</li></ol><p>Inclut <strong>2 ateliers collectifs</strong> (4h chacun) et un rapport de synthèse exécutif. Déplacement inclus dans un rayon de <em>50 km</em>.</p>",
+      "unitPrice": 2500
+    },
+    {
+      "id": "p4",
+      "name": "Formation React",
+      "description": "Formation pratique React — hooks, contexte, performance",
+      "descriptionHtml": "<p><strong>Programme détaillé (3 jours) :</strong></p><ol><li><strong>Jour 1 — Fondations :</strong> JSX, composants fonctionnels, props, state, cycle de vie</li><li><strong>Jour 2 — Hooks avancés :</strong> useEffect, useContext, useReducer, useMemo, useCallback, hooks personnalisés</li><li><strong>Jour 3 — Architecture et performance :</strong> React Router, gestion d'état globale, optimisation des re-renders, tests avec Vitest</li></ol><p>Format : <em>présentiel ou distanciel</em>. Maximum <strong>6 participants</strong> par session. Support de cours PDF et accès au repo GitHub inclus. <strong>Certification de participation</strong> délivrée à l'issue.</p>",
+      "unitPrice": 3000
+    },
+    {
+      "id": "p5",
+      "name": "Maintenance Mensuelle",
+      "description": "Support technique et maintenance corrective/évolutive mensuelle",
+      "descriptionHtml": "<p><strong>Contrat de maintenance — détail des engagements :</strong></p><ol><li>Surveillance 24/7 des serveurs et alertes automatiques</li><li>Correctifs de sécurité appliqués sous <strong>48h</strong> après publication</li><li>Sauvegardes quotidiennes chiffrées avec rétention 30 jours</li><li>Mises à jour des dépendances et librairies tierces</li><li>Rapport mensuel : uptime, incidents, actions réalisées</li><li>Jusqu'à <strong>4h de développement évolutif</strong> incluses par mois</li></ol><p>Astreinte téléphonique disponible en jours ouvrés <em>(9h–18h)</em>. Délai de réponse garanti : <strong>2h</strong> pour les incidents critiques, <em>1 jour ouvré</em> pour les demandes standards.</p>",
+      "unitPrice": 500
+    }
+  ],
+  "company": {
+    "name": "Digital Studio Pro",
+    "logo": null,
+    "address": "12 Rue des Oliviers, Casablanca 20100",
+    "phone": "+212 5 22 11 22 33",
+    "email": "contact@digitalstudiopro.ma",
+    "rc": "RC 456789",
+    "if_": "IF 12345678",
+    "ice": "ICE 001122334455667"
+  },
+  "invoiceDefaults": {
+    "labelText": "FACTURE",
+    "currency": "MAD",
+    "tvaRate": 20,
+    "discountPercent": 0,
+    "paymentTermsDays": 30,
+    "invoiceNumberPrefix": "FAC",
+    "nextInvoiceNumber": 1
+  },
+  "footer": {
+    "col1": "Digital Studio Pro\n12 Rue des Oliviers\nCasablanca 20100",
+    "col2": "RC: 456789\nIF: 12345678\nICE: 001122334455667",
+    "col3": "Tel: +212 5 22 11 22 33\nEmail: contact@digitalstudiopro.ma\nwww.digitalstudiopro.ma"
+  }
+}
