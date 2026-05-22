@@ -23,7 +23,13 @@ export default function RichTextToolbar({ editorRef, onInput }) {
   }
 
   function applyColor(hex) {
-    exec('foreColor', hex)
+    editorRef.current?.focus()
+    // styleWithCSS makes foreColor produce <span style="color:..."> (inline style,
+    // specificity 1,0,0,0) instead of <font color="..."> (presentational hint,
+    // specificity 0) which would be overridden by any Tailwind color class.
+    document.execCommand('styleWithCSS', false, true)
+    document.execCommand('foreColor', false, hex)
+    onInput?.()
   }
 
   const btnClass = 'p-1.5 rounded text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors cursor-pointer'

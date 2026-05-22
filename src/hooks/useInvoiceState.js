@@ -76,6 +76,7 @@ function reducer(state, action) {
       const newRow = {
         id: generateId(),
         name: action.product?.name ?? 'Nouveau service',
+        nameHtml: action.product?.nameHtml ?? action.product?.name ?? 'Nouveau service',
         description: action.product?.description ?? '',
         descriptionHtml: action.product?.descriptionHtml ?? action.product?.description ?? '',
         qty: 1,

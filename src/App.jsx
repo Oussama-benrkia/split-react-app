@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { InvoiceProvider, useInvoice } from './context/InvoiceContext'
-import { usePagination } from './hooks/usePagination'
+import { usePagination, HEADER_ZONE_H } from './hooks/usePagination'
 import Toolbar from './components/layout/Toolbar'
 import PageCanvas from './components/layout/PageCanvas'
 import SettingsDrawer from './components/settings/SettingsDrawer'
@@ -11,6 +11,8 @@ function InvoiceApp() {
   const { invoice } = useInvoice()
   const heightCache = useRef(new Map()).current
   const [heightVersion, setHeightVersion] = useState(0)
+  const [headerH, setHeaderH] = useState(HEADER_ZONE_H)
+  const [textMetrics, setTextMetrics] = useState({})
 
   const onRowHeightChange = useCallback((rowId, height) => {
     if (heightCache.get(rowId) !== height) {
@@ -19,12 +21,17 @@ function InvoiceApp() {
     }
   }, [heightCache])
 
-  const pages = usePagination(invoice.rows, heightCache, heightVersion)
+  const pages = usePagination(invoice.rows, heightCache, heightVersion, headerH, textMetrics)
 
   return (
     <>
       <Toolbar pageCount={pages.length} />
-      <PageCanvas pages={pages} onRowHeightChange={onRowHeightChange} />
+      <PageCanvas
+        pages={pages}
+        onRowHeightChange={onRowHeightChange}
+        onHeaderHeightChange={setHeaderH}
+        onTextMetricsChange={setTextMetrics}
+      />
       <SettingsDrawer />
       <ProductModal />
       <RowEditModal />

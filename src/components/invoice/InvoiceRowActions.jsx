@@ -88,13 +88,13 @@ export default function InvoiceRowActions({ rowId, onRemoveStart }) {
 
   return (
     <>
-      <div className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" data-print-hide>
+      <div className="flex items-start justify-center pt-1" data-print-hide>
         <button
           onClick={handleOpen}
           title="Actions"
-          className="p-1 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer"
+          className="p-1 rounded bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-gray-700 transition-colors cursor-pointer"
         >
-          <MoreVertical size={14} />
+          <MoreVertical size={13} />
         </button>
       </div>
 

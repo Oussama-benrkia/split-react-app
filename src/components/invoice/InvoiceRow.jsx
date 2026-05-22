@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useInvoice } from '../../context/InvoiceContext'
 import InvoiceRowActions from './InvoiceRowActions'
-
+import { sanitizeRichHtml } from '../../utils/sanitizeRichHtml'
 
 function formatCurrency(val) {
   return Number(val || 0).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -11,6 +11,13 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
   const { updateRow } = useInvoice()
   const [removing, setRemoving] = useState(false)
   const rowRef = useRef(null)
+  const nameRef = useRef(null)
+
+  useEffect(() => {
+    if (nameRef.current) {
+      nameRef.current.innerHTML = sanitizeRichHtml(row.nameHtml || row.name || '')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = (Number(row.qty) || 0) * (Number(row.unitPrice) || 0)
 
@@ -36,38 +43,25 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
       {/* Name */}
       <td className={cellBase}>
         <div
+          ref={nameRef}
           contentEditable
           suppressContentEditableWarning
-          onBlur={(e) => updateRow(row.id, { name: e.currentTarget.innerText })}
+          onBlur={(e) => updateRow(row.id, { name: e.currentTarget.innerText, nameHtml: e.currentTarget.innerHTML })}
           className="font-medium text-gray-800 focus:outline-none"
-        >
-          {row.name}
-        </div>
+        />
       </td>
 
       {/* Description — read-only; edit via the ⋮ modal */}
       <td className={cellBase} style={{ overflow: 'hidden', maxWidth: 0 }}>
-        {row._isFirstPart ? (
-          // Plain-text slice — aligns exactly with the continuation on the next page.
-          <div
-            className="text-gray-600"
-            style={{
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-              whiteSpace: 'pre-wrap',
-              maxHeight: row._splitDescHeight,
-              overflow: 'hidden',
-            }}
-          >
-            {row._splitFirstText || ''}
-          </div>
-        ) : (
-          <div
-            className="text-gray-600"
-            style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-            dangerouslySetInnerHTML={{ __html: row.descriptionHtml || row.description || '' }}
-          />
-        )}
+        <div
+          className="rich-editor text-gray-600"
+          style={{
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+            ...(row._isFirstPart && { maxHeight: row._splitDescHeight, overflow: 'hidden' }),
+          }}
+          dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(row.descriptionHtml || row.description || '') }}
+        />
       </td>
 
       {/* Qty */}
@@ -100,7 +94,7 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
       </td>
 
       {/* Actions */}
-      <td className="py-2 px-1 align-middle w-12">
+      <td className="py-2 px-1 align-top w-12">
         <InvoiceRowActions rowId={row.id} onRemoveStart={() => setRemoving(true)} />
       </td>
     </tr>

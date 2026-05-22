@@ -1,6 +1,6 @@
 import { useInvoice } from '../../context/InvoiceContext'
 
-export default function ZoneCompany() {
+export default function ZoneCompany({ readOnly = false }) {
   const { settings, invoice, setInvoiceDate, setInvoiceDueDate } = useInvoice()
   const c = settings.company
 
@@ -31,21 +31,29 @@ export default function ZoneCompany() {
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <span className="font-medium">Date :</span>
-          <input
-            type="date"
-            value={invoice.date}
-            onChange={(e) => setInvoiceDate(e.target.value)}
-            className="border-0 text-xs text-gray-700 bg-transparent focus:outline-none cursor-pointer"
-          />
+          {readOnly ? (
+            <span className="text-xs text-gray-700">{invoice.date}</span>
+          ) : (
+            <input
+              type="date"
+              value={invoice.date}
+              onChange={(e) => setInvoiceDate(e.target.value)}
+              className="border-0 text-xs text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+            />
+          )}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <span className="font-medium">Échéance :</span>
-          <input
-            type="date"
-            value={invoice.dueDate}
-            onChange={(e) => setInvoiceDueDate(e.target.value)}
-            className="border-0 text-xs text-gray-700 bg-transparent focus:outline-none cursor-pointer"
-          />
+          {readOnly ? (
+            <span className="text-xs text-gray-700">{invoice.dueDate}</span>
+          ) : (
+            <input
+              type="date"
+              value={invoice.dueDate}
+              onChange={(e) => setInvoiceDueDate(e.target.value)}
+              className="border-0 text-xs text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+            />
+          )}
         </div>
       </div>
     </div>

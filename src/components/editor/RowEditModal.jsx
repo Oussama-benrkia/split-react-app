@@ -52,6 +52,7 @@ export default function RowEditModal() {
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">Description</label>
             <RichTextEditor
+              key={rowId}
               initialHtml={local.descriptionHtml || local.description || ''}
               onChange={(html) => set('descriptionHtml', html)}
             />

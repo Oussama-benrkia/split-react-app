@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
 import RichTextToolbar from './RichTextToolbar'
+import { sanitizeRichHtml } from '../../utils/sanitizeRichHtml'
 
 export default function RichTextEditor({ initialHtml, onChange }) {
   const editorRef = useRef(null)
@@ -7,7 +8,7 @@ export default function RichTextEditor({ initialHtml, onChange }) {
   // Set initial content once on mount only
   useEffect(() => {
     if (editorRef.current) {
-      editorRef.current.innerHTML = initialHtml || ''
+      editorRef.current.innerHTML = sanitizeRichHtml(initialHtml)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -23,7 +24,7 @@ export default function RichTextEditor({ initialHtml, onChange }) {
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
-        className="min-h-32 px-3 py-2.5 text-sm text-gray-700 focus:outline-none"
+        className="rich-editor min-h-32 px-3 py-2.5 text-sm text-gray-700 focus:outline-none"
         style={{ lineHeight: 1.6 }}
       />
     </div>
