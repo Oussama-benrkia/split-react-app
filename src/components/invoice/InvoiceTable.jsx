@@ -14,12 +14,19 @@ const columns = [
 export default function InvoiceTable({ rows, showHeader, rowStartIndex = 0, onRowHeightChange }) {
   if (!rows || rows.length === 0) {
     return (
-      <div>
+      <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+        <colgroup>
+          {columns.map((c, i) => <col key={i} style={{ width: c.width }} />)}
+        </colgroup>
         {showHeader && <TableHead />}
-        <div className="py-8 text-center text-xs text-gray-400 italic border-b border-gray-200">
-          Aucune ligne — ajoutez un produit ou service
-        </div>
-      </div>
+        <tbody>
+          <tr>
+            <td colSpan={columns.length} className="py-8 text-center text-xs text-gray-400 italic border-b border-gray-200">
+              Aucune ligne — ajoutez un produit ou service
+            </td>
+          </tr>
+        </tbody>
+      </table>
     )
   }
 
@@ -32,7 +39,7 @@ export default function InvoiceTable({ rows, showHeader, rowStartIndex = 0, onRo
       <tbody>
         {rows.map((row, index) =>
           row._isContinued ? (
-            <ContinuedRowFragment key={row.id + '-cont'} row={row} index={rowStartIndex + index} />
+            <ContinuedRowFragment key={row.id + '-cont'} row={row} index={rowStartIndex + index} onHeightChange={onRowHeightChange} />
           ) : (
             <InvoiceRow key={row.id} row={row} index={rowStartIndex + index} onHeightChange={onRowHeightChange} />
           )

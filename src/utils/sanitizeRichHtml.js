@@ -9,4 +9,7 @@ export function sanitizeRichHtml(html) {
   return html
     .replace(/<font color="([^"]+)">/gi, '<span style="color:$1">')
     .replace(/<\/font>/gi, '</span>')
+    .replace(/​/g, '')        // actual zero-width space character
+    .replace(/&amp;#8203;/g, '')   // escaped by contentEditable → renders as visible "&#8203;"
+    .replace(/&#8203;/g, '')       // raw entity form
 }

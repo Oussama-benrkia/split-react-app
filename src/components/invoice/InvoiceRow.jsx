@@ -52,12 +52,12 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
       </td>
 
       {/* Description — read-only; edit via the ⋮ modal */}
-      <td className={cellBase} style={{ overflow: 'hidden', maxWidth: 0 }}>
+      <td className={cellBase} style={{ overflow: 'hidden' }}>
         <div
           className="rich-editor text-gray-600"
           style={{
             wordBreak: 'break-word',
-            overflowWrap: 'break-word',
+            overflowWrap: 'anywhere',
             ...(row._isFirstPart && { maxHeight: row._splitDescHeight, overflow: 'hidden' }),
           }}
           dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(row.descriptionHtml || row.description || '') }}

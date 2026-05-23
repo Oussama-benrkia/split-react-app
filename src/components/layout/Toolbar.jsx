@@ -1,12 +1,26 @@
-import { Settings, Printer, FilePlus } from 'lucide-react'
+import { useState } from 'react'
+import { Settings, Download, FilePlus, Loader } from 'lucide-react'
 import { useInvoice } from '../../context/InvoiceContext'
+import { exportPdf } from '../../utils/exportPdf'
 
 export default function Toolbar({ pageCount }) {
-  const { openSettings, resetInvoice } = useInvoice()
+  const { openSettings, resetInvoice, invoice } = useInvoice()
+  const [exporting, setExporting] = useState(false)
 
   function handleNewInvoice() {
     if (window.confirm('Créer une nouvelle facture ? Les données actuelles seront sauvegardées.')) {
       resetInvoice()
+    }
+  }
+
+  async function handleExport() {
+    if (exporting) return
+    setExporting(true)
+    try {
+      const name = invoice?.number ? `facture-${invoice.number}.pdf` : 'facture.pdf'
+      await exportPdf(name)
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -29,12 +43,15 @@ export default function Toolbar({ pageCount }) {
           <span className="hidden sm:inline">Nouvelle</span>
         </button>
         <button
-          onClick={() => window.print()}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
-          title="Imprimer"
+          onClick={handleExport}
+          disabled={exporting}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Télécharger PDF"
         >
-          <Printer size={16} />
-          <span className="hidden sm:inline">Imprimer</span>
+          {exporting
+            ? <Loader size={16} className="animate-spin" />
+            : <Download size={16} />}
+          <span className="hidden sm:inline">{exporting ? 'Export...' : 'PDF'}</span>
         </button>
         <button
           onClick={openSettings}
