@@ -15,10 +15,17 @@ function InvoiceApp() {
   const [textMetrics, setTextMetrics] = useState({})
 
   const onRowHeightChange = useCallback((rowId, height) => {
-    if (heightCache.get(rowId) !== height) {
-      heightCache.set(rowId, height)
-      setHeightVersion(v => v + 1)
-    }
+    if (height === null) {                                        // FIX 4: null signals cache invalidation for an edited row
+      for (const key of [...heightCache.keys()]) {               // FIX 4
+        if (key === rowId || key.startsWith(rowId + '_part_'))   // FIX 4: clear main key and all split-part keys
+          heightCache.delete(key)                                 // FIX 4
+      }                                                           // FIX 4
+      setHeightVersion(v => v + 1)                               // FIX 4
+      return                                                      // FIX 4
+    }                                                             // FIX 4
+    if (heightCache.get(rowId) === height) return                 // FIX 2: bail out when height is unchanged to stop re-render cascade
+    heightCache.set(rowId, height)
+    setHeightVersion(v => v + 1)
   }, [heightCache])
 
   const pages = usePagination(invoice.rows, heightCache, heightVersion, headerH, textMetrics)

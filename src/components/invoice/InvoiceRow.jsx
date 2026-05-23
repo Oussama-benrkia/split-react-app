@@ -46,7 +46,10 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
           ref={nameRef}
           contentEditable
           suppressContentEditableWarning
-          onBlur={(e) => updateRow(row.id, { name: e.currentTarget.innerText, nameHtml: e.currentTarget.innerHTML })}
+          onBlur={(e) => {
+            updateRow(row.id, { name: e.currentTarget.innerText, nameHtml: e.currentTarget.innerHTML })
+            onHeightChange?.(row.id, null) // FIX 4: evict stale cache entries when name content changes
+          }}
           className="font-medium text-gray-800 focus:outline-none"
         />
       </td>
@@ -58,7 +61,7 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
           style={{
             wordBreak: 'break-word',
             overflowWrap: 'anywhere',
-            ...(row._isFirstPart && { maxHeight: row._splitDescHeight, overflow: 'hidden' }),
+            ...(row._isFirstPart && !row._htmlSplit && !row._textSplit && { maxHeight: row._splitDescHeight, overflow: 'hidden' }), // STEP 1: _textSplit first parts now carry exact firstHtml — clip removed, same as _htmlSplit
           }}
           dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(row.descriptionHtml || row.description || '') }}
         />

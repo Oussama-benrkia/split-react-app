@@ -11,7 +11,9 @@ export default function ContinuedRowFragment({ row, index, onHeightChange }) {
   // and offsetHeight would return the full unclipped height, corrupting the cache.
   useEffect(() => {
     if (rowRef.current && onHeightChange && !row._isFirstPart) {
-      const key = (row._textSplit || row._htmlSplit) ? row.id + '_c' : row.id
+      const key = (row._textSplit || row._htmlSplit) // FIX 4: use _part_N when available, fall back to _c
+        ? (row._partIndex !== undefined ? row.id + '_part_' + row._partIndex : row.id + '_c') // FIX 4
+        : row.id
       onHeightChange(key, rowRef.current.offsetHeight)
     }
   })

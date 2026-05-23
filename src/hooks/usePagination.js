@@ -30,9 +30,11 @@ function pageBudget(headerH) {
 function estimateRowHeight(row, heightCache, lineHeight, charsPerLine) {
   if (row._splitHeight !== undefined) return row._splitHeight
   const computed = measureRowHeight(row, lineHeight, charsPerLine)
-  const key = ((row._textSplit || row._htmlSplit) && row._isContinued) ? row.id + '_c' : row.id
+  const key = ((row._textSplit || row._htmlSplit) && row._isContinued) // FIX 4: use _part_N key when available
+    ? (row._partIndex !== undefined ? row.id + '_part_' + row._partIndex : row.id + '_c') // FIX 4
+    : row.id // FIX 4
   if (!heightCache.has(key)) return computed
-  return Math.max(heightCache.get(key), computed)
+  return heightCache.get(key) // FIX 3: removed Math.max ratchet — shrinking rows now self-correct
 }
 
 function stripHtml(html) {
@@ -189,6 +191,7 @@ function trySplitRow(row, available, lineHeight, charsPerLine) {
       ...row,
       _isContinued: true,
       _htmlSplit: true,
+      _partIndex: (row._partIndex ?? 0) + 1, // FIX 4: unique cache key per split fragment
       descriptionHtml: listSplit.secondHtml,
     }
     return { firstPart, secondPart }
@@ -210,17 +213,26 @@ function trySplitRow(row, available, lineHeight, charsPerLine) {
   const continuationText = isMidWord
     ? plainText.slice(splitChar)
     : plainText.slice(splitChar).trimStart()
-  // Use the full available description height as the clip rather than a text-derived
-  // estimate: countLines() cannot see <p>/<ol> margins or bold line-height bumps, so
-  // any text estimate is always too small and clips rich HTML too early.
-  const splitDescHeight = available - ROW_OVERHEAD_H
+  // STEP 2: snap to a line boundary so the clip never lands mid-glyph.
+  // After Step 1 this value is only used by secondPart — firstPart no longer clips.
+  const splitDescHeight = Math.floor((available - ROW_OVERHEAD_H) / lineHeight) * lineHeight // STEP 2
+
+  // STEP 1: build exact HTML for the first page so no CSS maxHeight clip is needed.
+  // Each \n in firstText came from a </p> or </div> via stripHtml, so reconstruct as <p> blocks.
+  // Inline formatting (bold, italic) is lost — _textSplit is the plain-text fallback path
+  // and the continuation already uses plain text, so both sides are consistent.
+  const firstHtml = firstText // STEP 1
+    .split('\n') // STEP 1
+    .filter(seg => seg.length > 0) // STEP 1: drop empty segments from a trailing newline
+    .map(seg => `<p>${seg}</p>`) // STEP 1
+    .join('') || `<p>${firstText}</p>` // STEP 1: fallback for a single segment with no newlines
 
   const firstPart = {
     ...row,
     _isFirstPart: true,
     _splitHeight: available,
-    _splitDescHeight: splitDescHeight,
-    descriptionHtml: html,  // keep original HTML; _splitDescHeight + maxHeight clip does the trimming
+    // _splitDescHeight intentionally omitted — firstHtml is exact content, clip not needed // STEP 1
+    descriptionHtml: firstHtml, // STEP 1: only the visible portion, no CSS clip required
     _textSplit: true,
   }
   const secondPart = {
@@ -231,6 +243,7 @@ function trySplitRow(row, available, lineHeight, charsPerLine) {
     descriptionHtml: continuationText,
     description: continuationText,
     _textSplit: true,
+    _partIndex: (row._partIndex ?? 0) + 1, // FIX 4: unique cache key per split fragment
   }
 
   return { firstPart, secondPart }
