@@ -21,12 +21,18 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
 
   const total = (Number(row.qty) || 0) * (Number(row.unitPrice) || 0)
 
-  // Notify pagination about height changes.
-  // Skip for _isFirstPart rows: their budget contribution is fixed (_splitHeight),
-  // and offsetHeight would return the full unclipped row height, corrupting the cache.
+  // Non-split and continuation rows report under row.id so estimateRowHeight can use the
+  // real DOM height for placement decisions.
+  // _isFirstPart rows report under row.id + '__fp' — App.jsx routes that key to
+  // firstPartHeightCache, which is used only for cursor_y accounting on the split page,
+  // never for the split decision itself. This prevents the height-chasing loop that occurs
+  // when the split decision and the measured first-part height feed back into each other.
   useEffect(() => {
-    if (rowRef.current && onHeightChange && !row._isFirstPart) {
-      onHeightChange(row.id, rowRef.current.offsetHeight)
+    if (!rowRef.current || !onHeightChange) return
+    if (row._isFirstPart) {
+      onHeightChange(row.id + '__fp', rowRef.current.offsetHeight) // FIX: separate routing key keeps first-part height out of heightCache
+    } else {
+      onHeightChange(row.id, rowRef.current.offsetHeight) // FIX: _isFirstPart guard restored — non-split rows only
     }
   })
 

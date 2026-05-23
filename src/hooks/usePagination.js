@@ -111,8 +111,12 @@ function findSplitChar(plainText, maxLines, charsPerLine) {
  * Try to split an HTML list (ol/ul) at a <li> boundary so each page gets
  * complete items and ordered lists continue with the correct start number.
  * Returns { firstHtml, secondHtml, linesInFirst } or null if not applicable.
+ *
+ * lineHeight and available are used to verify the chosen splitAt in pixel space:
+ * linesUsed * lineHeight + LIST_MARGIN_V must fit within available - ROW_OVERHEAD_H.
+ * If not, splitAt is reduced one item at a time until it does.
  */
-function tryListSplit(html, descLinesVisible, charsPerLine) {
+function tryListSplit(html, descLinesVisible, charsPerLine, lineHeight, available) { // FIX: added lineHeight and available for pixel verification
   const listMatch = /<(ol|ul)([^>]*)>([\s\S]*?)<\/\1>/i.exec(html)
   if (!listMatch) return null
 
@@ -133,7 +137,7 @@ function tryListSplit(html, descLinesVisible, charsPerLine) {
 
   if (items.length < 2) return null
 
-  // Find split point: last item index that still fits
+  // Find split point: last item index that still fits by line count
   let linesUsed = 0
   let splitAt = -1
   for (let i = 0; i < items.length; i++) {
@@ -141,6 +145,16 @@ function tryListSplit(html, descLinesVisible, charsPerLine) {
     linesUsed += items[i].lines
   }
   if (splitAt <= 0 || splitAt >= items.length) return null
+
+  // FIX: pixel verification — countLines() ignores <ol>/<ul> margin-block (1em top + 1em bottom).
+  // LIST_MARGIN_V = 2 * lineHeight accounts for both margins so splitAt never overflows the page.
+  const LIST_MARGIN_V = 2 * lineHeight // FIX: ol/ul margin-block-start + margin-block-end
+  const descBudget = available - ROW_OVERHEAD_H // FIX: pixel budget for description content
+  while (splitAt > 1 && linesUsed * lineHeight + LIST_MARGIN_V > descBudget) { // FIX
+    splitAt-- // FIX: remove one item from the first part
+    linesUsed -= items[splitAt].lines // FIX: subtract that item's lines from the count
+  } // FIX
+  if (splitAt <= 0 || splitAt >= items.length) return null // FIX: re-check after reduction
 
   const buildItems = arr => arr.map(it => `<li${it.liAttrs}>${it.liContent}</li>`).join('')
   // Strip any existing start attr from attrs so we never duplicate it.
@@ -174,7 +188,7 @@ function trySplitRow(row, available, lineHeight, charsPerLine) {
   const html = row.descriptionHtml || ''
 
   // Prefer HTML-level list split: produces exact item boundaries, no pixel estimation.
-  const listSplit = tryListSplit(html, descLinesVisible, charsPerLine)
+  const listSplit = tryListSplit(html, descLinesVisible, charsPerLine, lineHeight, available) // FIX: pass lineHeight and available for pixel verification
   if (listSplit) {
     // +lineHeight buffers for <ol>/<ul> default top+bottom margin that plain-text
     // line counting cannot see — without it the last visible item is always clipped.
@@ -231,6 +245,7 @@ function trySplitRow(row, available, lineHeight, charsPerLine) {
     ...row,
     _isFirstPart: true,
     _splitHeight: available,
+   _splitDescHeight: undefined, 
     // _splitDescHeight intentionally omitted — firstHtml is exact content, clip not needed // STEP 1
     descriptionHtml: firstHtml, // STEP 1: only the visible portion, no CSS clip required
     _textSplit: true,
@@ -249,7 +264,9 @@ function trySplitRow(row, available, lineHeight, charsPerLine) {
   return { firstPart, secondPart }
 }
 
-function paginate(rows, heightCache, headerH, lineHeight, charsPerLine) {
+// FIX: accept firstPartHeightCache — stores the rendered height of _isFirstPart rows,
+// used only for cursor_y accounting on the split page, never for the split decision itself.
+function paginate(rows, heightCache, headerH, lineHeight, charsPerLine, firstPartHeightCache) {
   const budget = pageBudget(headerH)
   // Mirrors trySplitRow's minSplitH — minimum vertical zone that must remain after a row
   // placement, so a page never ends with a lone short row right before a page break.
@@ -286,8 +303,8 @@ function paginate(rows, heightCache, headerH, lineHeight, charsPerLine) {
         currentRows = [{ ...row, _y: 0 }]
         cursor_y = rowH
       } else {
-        currentRows.push({ ...row, _y: cursor_y })
-        cursor_y += rowH
+currentRows.push({ ...row, _y: cursor_y })
+cursor_y += rowH  // ← remove effectiveH entirely for non-split rows
       }
     } else {
       // Try to split in the remaining space; if the row is also taller than a full page,
@@ -296,8 +313,12 @@ function paginate(rows, heightCache, headerH, lineHeight, charsPerLine) {
                ?? (rowH > budget ? trySplitRow(row, budget, lineHeight, charsPerLine) : null)
 
       if (split) {
-        // First part fills the current page.
-        currentRows.push({ ...split.firstPart, _y: cursor_y })
+        // Use the real measured first-part height from firstPartHeightCache when available.
+        // This corrects cursor_y on the split page without feeding back into the split decision:
+        // the firstPart is always the last row on its page (cursor_y resets to 0 after the push),
+        // so changing _splitHeight here cannot alter descLinesVisible or splitAt on any page.
+        const firstPartH = firstPartHeightCache.get(row.id) ?? split.firstPart._splitHeight ?? remaining // FIX: use measured height for accurate page accounting
+        currentRows.push({ ...split.firstPart, _y: cursor_y, _splitHeight: firstPartH }) // FIX
         pages.push({ rows: currentRows, isLast: false, pageNumber: pages.length + 1, rowStartIndex: globalRowStart })
         globalRowStart += currentRows.length - 1
         currentRows = []
@@ -337,11 +358,11 @@ function paginate(rows, heightCache, headerH, lineHeight, charsPerLine) {
   return pages
 }
 
-export function usePagination(rows, heightCache, _version, headerH = HEADER_ZONE_H, textMetrics = {}) {
+export function usePagination(rows, heightCache, _version, headerH = HEADER_ZONE_H, textMetrics = {}, firstPartHeightCache = new Map()) { // FIX: accept firstPartHeightCache as 6th parameter
   const lineHeight = textMetrics.lineHeight ?? LINE_HEIGHT_DEFAULT
   const charsPerLine = textMetrics.charsPerLine ?? CHARS_PER_LINE_DEFAULT
   return useMemo(
-    () => paginate(rows, heightCache, headerH, lineHeight, charsPerLine),
-    [rows, heightCache, _version, headerH, lineHeight, charsPerLine],
+    () => paginate(rows, heightCache, headerH, lineHeight, charsPerLine, firstPartHeightCache), // FIX: forward to paginate
+    [rows, heightCache, _version, headerH, lineHeight, charsPerLine, firstPartHeightCache], // FIX: added firstPartHeightCache to deps
   )
 }
