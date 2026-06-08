@@ -1,8 +1,8 @@
-import { useReducer, useEffect } from 'react'
+import { useReducer, useEffect, useRef } from 'react'
 import seedData from '../data.json'
 
 function generateId() {
-  return Math.random().toString(36).slice(2, 10)
+  return crypto.randomUUID()
 }
 
 function formatInvoiceNumber(prefix, num) {
@@ -189,10 +189,15 @@ function reducer(state, action) {
 
 export function useInvoiceState() {
   const [state, dispatch] = useReducer(reducer, null, () => loadState() ?? buildInitialState())
+  const timerRef = useRef(null)
 
   useEffect(() => {
     const { ui, ...persisted } = state
-    localStorage.setItem('invoice-studio-state', JSON.stringify(persisted))
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      localStorage.setItem('invoice-studio-state', JSON.stringify(persisted))
+    }, 500)
+    return () => clearTimeout(timerRef.current)
   }, [state])
 
   return { state, dispatch }

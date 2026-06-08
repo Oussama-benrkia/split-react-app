@@ -3,7 +3,7 @@ import { Settings, Download, FilePlus, Loader } from 'lucide-react'
 import { useInvoice } from '../../context/InvoiceContext'
 import { exportPdf } from '../../utils/exportPdf'
 
-export default function Toolbar({ pageCount }) {
+export default function Toolbar({ pageCount, isPending }) {
   const { openSettings, resetInvoice, invoice } = useInvoice()
   const [exporting, setExporting] = useState(false)
 
@@ -33,7 +33,10 @@ export default function Toolbar({ pageCount }) {
         <span className="text-sm font-bold text-blue-600 tracking-wide">Invoice Studio</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400 mr-2">{pageCount} page{pageCount > 1 ? 's' : ''}</span>
+        <span className="text-xs text-gray-400 mr-2 flex items-center gap-1">
+          {isPending && <Loader size={10} className="animate-spin" />}
+          {pageCount} page{pageCount > 1 ? 's' : ''}
+        </span>
         <button
           onClick={handleNewInvoice}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"

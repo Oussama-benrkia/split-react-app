@@ -3,7 +3,7 @@ import { useInvoice } from '../../context/InvoiceContext'
 import InvoiceTable from '../invoice/InvoiceTable'
 import AddProductButton from '../invoice/AddProductButton'
 
-export default function ZoneInvoiceBody({ pageRows, isFirstPage, isLastPage, pageIndex, rowStartIndex, onRowHeightChange }) {
+export default function ZoneInvoiceBody({ pageRows, isFirstPage, isLastPage, pageIndex, rowStartIndex, onRowHeightChange, measureRowRef }) {
   const { invoice, setLabelText } = useInvoice()
   const labelRef = useRef(null)
 
@@ -34,7 +34,14 @@ export default function ZoneInvoiceBody({ pageRows, isFirstPage, isLastPage, pag
       </div>
 
       {/* Table */}
-      <InvoiceTable rows={pageRows} showHeader rowStartIndex={rowStartIndex} onRowHeightChange={onRowHeightChange} />
+      <InvoiceTable
+        rows={pageRows}
+        showHeader
+        rowStartIndex={rowStartIndex}
+        onRowHeightChange={onRowHeightChange}
+        isProbeHost={isFirstPage}
+        measureRowRef={isFirstPage ? measureRowRef : null}
+      />
 
       {/* Add button always after last row on last page of rows */}
       {isLastPage && <AddProductButton />}

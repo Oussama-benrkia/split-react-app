@@ -6,53 +6,24 @@ import ZoneInvoiceBody from '../zones/ZoneInvoiceBody'
 import ZoneFooter from '../zones/ZoneFooter'
 import TotalsBlock from '../totals/TotalsBlock'
 
-// Description column inner width: table col width minus px-3 padding on each side.
-const DESC_COL_INNER_W = 247
-
-export default function PageCanvas({ pages, onRowHeightChange, onHeaderHeightChange, onTextMetricsChange }) {
+export default function PageCanvas({ pages, onRowHeightChange, onHeaderHeightChange, measureRowRef }) {
   const headerRef = useRef(null)
-  const probeRef = useRef(null)
-  const probeSpanRef = useRef(null)
-  const metricsRef = useRef(null)
 
   // Measure the header zone after every render so usePagination gets the real
   // height (logo + company info + invoice meta vary and can exceed the default estimate).
   // offsetHeight excludes margin, so we add mb-6 (1.5 rem = 24 px at root 16 px).
   useEffect(() => {
-    if (headerRef.current) {
-      onHeaderHeightChange?.(headerRef.current.offsetHeight + 24)
-    }
-  })
-
-  // Measure actual text metrics once after mount.
-  useEffect(() => {
-    if (!probeRef.current || !probeSpanRef.current) return
-    const style = getComputedStyle(probeRef.current)
-    const lineHeight = parseFloat(style.lineHeight) || 16
-    const sampleText = 'abcdefghijklmnopqrstuvwxyz abcdefghij' // 37 chars, varied width
-    probeSpanRef.current.textContent = sampleText
-    const avgCharWidth = probeSpanRef.current.offsetWidth / sampleText.length
-    const charsPerLine = Math.floor(DESC_COL_INNER_W / avgCharWidth)
-    const next = { lineHeight, charsPerLine }
-    // Only fire if values actually changed to avoid infinite re-render loops.
-    const prev = metricsRef.current
-    if (!prev || prev.lineHeight !== next.lineHeight || prev.charsPerLine !== next.charsPerLine) {
-      metricsRef.current = next
-      onTextMetricsChange?.(next)
-    }
-  })
+    if (!headerRef.current) return
+    const el = headerRef.current
+    const report = () => onHeaderHeightChange?.(el.offsetHeight + 24)
+    report()
+    const ro = new ResizeObserver(report)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [onHeaderHeightChange])
 
   return (
     <div className="flex flex-col items-center py-8 pt-20 min-h-screen bg-gray-200">
-      {/* Hidden probe to measure real text-xs line-height and avg char width */}
-      <div
-        ref={probeRef}
-        className="text-xs"
-        style={{ position: 'fixed', top: -9999, left: -9999, visibility: 'hidden', whiteSpace: 'nowrap' }}
-        aria-hidden="true"
-      >
-        <span ref={probeSpanRef} />
-      </div>
       {pages.map((page, index) => (
         <A4Page key={index} pageNumber={index + 1} isLast={page.isLast}>
           {/* Content area — hard-clipped so rows never flow under the absolute footer.
@@ -80,6 +51,7 @@ export default function PageCanvas({ pages, onRowHeightChange, onHeaderHeightCha
               pageIndex={index}
               rowStartIndex={page.rowStartIndex}
               onRowHeightChange={onRowHeightChange}
+              measureRowRef={index === 0 ? measureRowRef : null}
             />
 
             {/* Zone 4 — Totals (last page only) */}

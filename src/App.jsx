@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useDeferredValue } from 'react'
 import { InvoiceProvider, useInvoice } from './context/InvoiceContext'
 import { usePagination, HEADER_ZONE_H } from './hooks/usePagination'
+import { sanitizeRichHtml } from './utils/sanitizeRichHtml'
 import Toolbar from './components/layout/Toolbar'
 import PageCanvas from './components/layout/PageCanvas'
 import SettingsDrawer from './components/settings/SettingsDrawer'
@@ -10,43 +11,74 @@ import RowEditModal from './components/editor/RowEditModal'
 function InvoiceApp() {
   const { invoice } = useInvoice()
   const heightCache = useRef(new Map()).current
-  const firstPartHeightCache = useRef(new Map()).current // FIX: separate cache for _isFirstPart rendered heights
   const [heightVersion, setHeightVersion] = useState(0)
+  const dirtyFromIndexRef = useRef(null)
+  const rowsRef = useRef(invoice.rows)
+  rowsRef.current = invoice.rows // eslint-disable-line react-hooks/refs
   const [headerH, setHeaderH] = useState(HEADER_ZONE_H)
-  const [textMetrics, setTextMetrics] = useState({})
+  const onHeaderHeightChange = useCallback((h) => {
+    setHeaderH(prev => Math.abs(prev - h) > 2 ? h : prev)
+  }, [])
+
+  // Measurement row ref — used by measureFragment to get real heights for split fragments.
+  const measureRowRef = useRef(null)
+
+  // Renders a candidate row into the hidden measurement <tr> and returns its offsetHeight.
+  // Called synchronously during pagination when a row needs splitting, so the browser's
+  // own layout engine determines the cut point — no character counting required.
+  const measureFragment = useCallback((row) => {
+    if (!measureRowRef.current) return 0
+    const tr = measureRowRef.current
+    tr.cells[1].innerHTML = sanitizeRichHtml(row.nameHtml || row.name || '')
+    tr.cells[2].innerHTML = sanitizeRichHtml(row.descriptionHtml || row.description || '')
+    return tr.offsetHeight
+  }, [])
 
   const onRowHeightChange = useCallback((rowId, height) => {
-    if (height === null) {                                        // FIX 4: null signals cache invalidation for an edited row
-      for (const key of [...heightCache.keys()]) {               // FIX 4
-        if (key === rowId || key.startsWith(rowId + '_part_'))   // FIX 4: clear main key and all split-part keys
-          heightCache.delete(key)                                 // FIX 4
-      }                                                           // FIX 4
-      firstPartHeightCache.delete(rowId)                         // FIX: also evict first-part cache entry on row edit
-      setHeightVersion(v => v + 1)                               // FIX 4
-      return                                                      // FIX 4
-    }                                                             // FIX 4
-    if (rowId.endsWith('__fp')) {                                 // FIX: route _isFirstPart reports to dedicated cache
-      const realId = rowId.slice(0, -4)                          // FIX: strip '__fp' suffix (4 chars) to recover original row.id
-      if (firstPartHeightCache.get(realId) === height) return    // FIX: bail out when unchanged — prevents re-render cascade
-      firstPartHeightCache.set(realId, height)                   // FIX: store in firstPartHeightCache, not heightCache
-      setHeightVersion(v => v + 1)                               // FIX
-      return                                                      // FIX
-    }                                                             // FIX
-    if (heightCache.get(rowId) === height) return                 // FIX 2: bail out when height is unchanged to stop re-render cascade
-    heightCache.set(rowId, height)
-    setHeightVersion(v => v + 1)
-  }, [heightCache, firstPartHeightCache]) // FIX: firstPartHeightCache added to deps
+    const markDirty = (id) => {
+      const baseId = id.includes('_part_') ? id.split('_part_')[0] : id
+      const idx = rowsRef.current.findIndex(r => r.id === baseId)
+      if (idx !== -1 && (dirtyFromIndexRef.current === null || idx < dirtyFromIndexRef.current)) {
+        dirtyFromIndexRef.current = idx
+      }
+    }
 
-  const pages = usePagination(invoice.rows, heightCache, heightVersion, headerH, textMetrics, firstPartHeightCache) // FIX: pass firstPartHeightCache as 6th arg
+    if (height === null) {
+      for (const key of [...heightCache.keys()]) {
+        if (key === rowId || key === rowId + '_c' || key.startsWith(rowId + '_part_'))
+          heightCache.delete(key)
+      }
+      markDirty(rowId)
+      setHeightVersion(v => v + 1)
+      return
+    }
+    const prev = heightCache.get(rowId)
+    if (prev !== undefined && Math.abs(prev - height) <= 2) return
+    heightCache.set(rowId, height)
+    markDirty(rowId)
+    setHeightVersion(v => v + 1)
+  }, [heightCache])
+
+  // eslint-disable-next-line react-hooks/refs
+  const dirtyFrom = dirtyFromIndexRef.current
+  dirtyFromIndexRef.current = null // eslint-disable-line react-hooks/refs
+
+  const deferredRows = useDeferredValue(invoice.rows)
+  const deferredHeaderH = useDeferredValue(headerH)
+  const isPaginationPending = deferredRows !== invoice.rows || deferredHeaderH !== headerH
+
+  // eslint-disable-next-line react-hooks/refs
+  const allMeasured = deferredRows.length === 0 || deferredRows.every(r => heightCache.has(r.id))
+  const pages = usePagination(allMeasured ? deferredRows : [], heightCache, heightVersion, deferredHeaderH, measureFragment, dirtyFrom)
 
   return (
     <>
-      <Toolbar pageCount={pages.length} />
+      <Toolbar pageCount={pages.length} isPending={isPaginationPending} />
       <PageCanvas
         pages={pages}
         onRowHeightChange={onRowHeightChange}
-        onHeaderHeightChange={setHeaderH}
-        onTextMetricsChange={setTextMetrics}
+        onHeaderHeightChange={onHeaderHeightChange}
+        measureRowRef={measureRowRef}
       />
       <SettingsDrawer />
       <ProductModal />

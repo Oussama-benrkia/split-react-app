@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { useInvoice } from '../../context/InvoiceContext'
 import InvoiceRowActions from './InvoiceRowActions'
 import { sanitizeRichHtml } from '../../utils/sanitizeRichHtml'
@@ -14,27 +14,20 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
   const nameRef = useRef(null)
 
   useEffect(() => {
-    if (nameRef.current) {
+    if (nameRef.current && nameRef.current !== document.activeElement) {
       nameRef.current.innerHTML = sanitizeRichHtml(row.nameHtml || row.name || '')
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [row.nameHtml, row.name])
 
   const total = (Number(row.qty) || 0) * (Number(row.unitPrice) || 0)
 
-  // Non-split and continuation rows report under row.id so estimateRowHeight can use the
-  // real DOM height for placement decisions.
-  // _isFirstPart rows report under row.id + '__fp' — App.jsx routes that key to
-  // firstPartHeightCache, which is used only for cursor_y accounting on the split page,
-  // never for the split decision itself. This prevents the height-chasing loop that occurs
-  // when the split decision and the measured first-part height feed back into each other.
-  useEffect(() => {
-    if (!rowRef.current || !onHeightChange) return
-    if (row._isFirstPart) {
-      onHeightChange(row.id + '__fp', rowRef.current.offsetHeight) // FIX: separate routing key keeps first-part height out of heightCache
-    } else {
-      onHeightChange(row.id, rowRef.current.offsetHeight) // FIX: _isFirstPart guard restored — non-split rows only
-    }
-  })
+  // _isFirstPart rows have their height owned by _splitHeight (set by the split engine from
+  // a real measurement). Reporting back would overwrite heightCache[row.id] with a partial
+  // height and cause placement errors on the next pagination run.
+  useLayoutEffect(() => {
+    if (!rowRef.current || !onHeightChange || row._isFirstPart) return
+    onHeightChange(row.id, rowRef.current.offsetHeight)
+  }, [row.id, row.nameHtml, row.name, row.descriptionHtml, row.qty, row.unitPrice, row._isFirstPart, onHeightChange])
 
   const cellBase = 'py-2 px-3 text-xs text-gray-700 align-top'
 
@@ -64,11 +57,7 @@ export default function InvoiceRow({ row, index, onHeightChange }) {
       <td className={cellBase} style={{ overflow: 'hidden' }}>
         <div
           className="rich-editor text-gray-600"
-          style={{
-            wordBreak: 'break-word',
-            overflowWrap: 'anywhere',
-            ...(row._isFirstPart && !row._htmlSplit && !row._textSplit && { maxHeight: row._splitDescHeight, overflow: 'hidden' }), // STEP 1: _textSplit first parts now carry exact firstHtml — clip removed, same as _htmlSplit
-          }}
+          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
           dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(row.descriptionHtml || row.description || '') }}
         />
       </td>
